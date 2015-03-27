@@ -16,6 +16,7 @@ WiFi connection code is modified from Arduino example code "ConnectWithWPA." Cre
 
 // issues: - I appear to be limited to ~63 characters regardless of INPUTLENGTH.
 //            ^This may be due to some buffer size limitation. How to modify or workaround?
+//             Could also be an issue related to the HTTP POST request?
 //         - printing pasteID from previous paste
 
 
