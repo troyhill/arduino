@@ -14,6 +14,11 @@ WiFi connection code is modified from Arduino example code "ConnectWithWPA." Cre
  by Tom Igoe"
 */
 
+// issues: - I appear to be limited to ~63 characters regardless of INPUTLENGTH.
+//            ^This may be due to some buffer size limitation. How to modify or workaround?
+//         - printing pasteID from previous paste
+
+
 #include <SPI.h>
 #include <WiFi.h>
 
@@ -33,9 +38,14 @@ int b1 = strlen(api_dev_key) + strlen(api_user_name) + strlen(api_user_password)
 const int buffer = 32; // length of session key
 char seshKey[buffer + 1]; // allow for the terminating null [buffer + 1]
 
+
 // variables for paste function
 const int idBuffer = 20;
 char pasteID[idBuffer + 1]; // holds paste ID before merging to pasteList (more than enough characters)
+#define INPUTLENGTH 150 // max length of input array
+static int pos = 0; // Index into array; where to store the character
+static char inData[INPUTLENGTH + 1]; // Allocate some space for the string
+
 
 // variables for wireless settings
 int status = WL_IDLE_STATUS;
@@ -90,7 +100,7 @@ void loop() {
  
  // get text entered into serial
 if(Serial.available()) {
-   // wait for full message
+   // wait for full message. slight chance this may need upward adjustment to allow for longer messages
    delay(100);
    
    while (Serial.available() > 0){
@@ -115,8 +125,8 @@ if(Serial.available()) {
  if(strlen(seshKey) == 32) {
   //char pasteInput[] = "Hello, world."; // uncomment if you want to print a pre-defined message
   pasteIt(inData); // formerly pasteInput
-  Serial.print("Paste ID: ");
-  Serial.println(pasteID); // loop has to run twice for this to register?
+  Serial.print("input text: ");
+  Serial.println(inData);
   }
   }
    }
@@ -167,6 +177,7 @@ char keyReq(char *keyTemp){
 char pasteIt(char *text){ 
 Serial.println("Making a paste..."); // remove once function works
 
+char pasteIDtemp[idBuffer + 1];
 char api_user_key_tag[] = "&api_user_key="; // points to session_key
 char api_option_tag[] = "&api_option=paste";
 char api_paste_code_tag[] = "&api_paste_code=";
@@ -208,8 +219,13 @@ if (client.connect(server, 80)) {
 }
  while (client.available()) {
     if(client.find("http://pastebin.com/")){ // find distinctive text anchor
-    client.readBytesUntil('\r\n', pasteID, idBuffer); // seek text until next newline, save to pasteID
-    }}    
+    client.readBytesUntil('\r\n', pasteIDtemp, idBuffer); // seek text until next newline, save to pasteID
+    // still printing old pasteID, whether this object is "pasteID" or a variable defined in local scope
+    }
+    Serial.print("Paste ID: ");
+    Serial.println(pasteIDtemp); // still printing old pasteID, whether this object is "pasteID" or a variable defined in local scope
+  
+ }    
   // if the server's disconnected, stop the client:
   if (!client.connected()) {
     Serial.println();
