@@ -95,6 +95,7 @@ void loop() {
   if(strlen(seshKey) == 32) { 
   Serial.print("Session key: ");
   Serial.println(seshKey); // print the key to the serial window
+  Serial.println("Session key successfully generated. Enter text to create a paste."); 
   }  
  }
  
