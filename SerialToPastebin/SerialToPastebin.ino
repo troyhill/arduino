@@ -1,6 +1,6 @@
 /* This code does the following: 
 (1) retrieves a pastebin session key, and  
-(2) posts arbitrary text entered into the serial terminal.
+(2) posts arbitrary text entered into the serial terminal (up to 90 bytes; ~63 characters).
 
 This code requires the following conditions:
 - an Arduino wireless card
@@ -14,10 +14,8 @@ WiFi connection code is modified from Arduino example code "ConnectWithWPA." Cre
  by Tom Igoe"
 */
 
-// issues: - I appear to be limited to ~63 characters regardless of INPUTLENGTH.
-//            ^This may be due to some buffer size limitation. How to modify or workaround?
-//             Could also be an issue related to the HTTP POST request?
-//         - printing pasteID from previous paste
+// issues: 
+// - printing pasteID from previous paste
 
 
 #include <SPI.h>
