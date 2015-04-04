@@ -45,6 +45,8 @@ char pasteID[idBuffer + 1];
 #define SERIESRESISTOR 10000
 // length of data file stored in RAM
 #define dataLength 90 // 90 works, 100 appears not to
+// sampling interval in milliseconds (very simplistic - Arduino doesn't go into a low-power mode)
+#define pauseInterval 30000 // 5 minutes = 5 * 60 * 1000 milliseconds
     
 int samples[NUMSAMPLES];
 char GlobTmp[12]; // temperature array in global scope
@@ -126,7 +128,7 @@ void loop() {
       Serial.print(" *F, dataset length: "); // add units
       Serial.println(strlen(data)); // print the total length of our dataset
       Serial.println(data);  // print entire dataset
-      delay(1000); // wait x milliseconds, then do it again
+      delay(pauseInterval); // wait x milliseconds, then do it again
   }
 
 if(strlen(data) >= (dataLength - 5)){ // if dataset ("data") has room, append a temperature reading
