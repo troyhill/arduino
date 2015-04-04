@@ -21,32 +21,34 @@ WiFi connection code is modified from Arduino example code "ConnectWithWPA." Cre
 #include <SPI.h>
 #include <WiFi.h>
 
+// Modify these lines to match your setup:
 char ssid[] = "ye_ole_internetwork";      // network SSID
 char pass[] = "ye_ole_WPA_password";      // network password
-
-// variables for session key function
-char session_key[33];
 char api_user_name[] = "username";     // Pastebin username
 char api_user_password[] = "password"; // Pastebin password
 char api_dev_key[] = "your_dev_key";   // Pastebin dev key (http://pastebin.com/api/)
+
+
+// parameters for session key function
 char key_tag[] = "&api_dev_key=";
 char req1[] = "POST ";
 char req2[] = "&api_user_name=";
 char req3[] = "&api_user_password=";
 int b1 = strlen(api_dev_key) + strlen(api_user_name) + strlen(api_user_password) + strlen(key_tag) + strlen(req2) + strlen(req3);
+char session_key[33];
 const int buffer = 32; // length of session key
 char seshKey[buffer + 1]; // allow for the terminating null [buffer + 1]
 
 
-// variables for paste function
+// parameters for paste function
 const int idBuffer = 20;
 char pasteID[idBuffer + 1]; // holds paste ID before merging to pasteList (more than enough characters)
-#define INPUTLENGTH 150 // max length of input array
+#define INPUTLENGTH 64 // max length of input array
 static int pos = 0; // Index into array; where to store the character
 static char inData[INPUTLENGTH + 1]; // Allocate some space for the string
 
 
-// variables for wireless settings
+// parameters for wireless settings
 int status = WL_IDLE_STATUS;
 // could use the numeric IP instead of the name for the server:
 // IPAddress server(190,93,243,15);  // numeric IP (no DNS)
@@ -90,7 +92,6 @@ void loop() {
 // if, e.g., website is unavailable
  if(strlen(seshKey) < 32) { 
   keyReq(seshKey);
-  delay(3000);
   if(strlen(seshKey) == 32) { 
   Serial.print("Session key: ");
   Serial.println(seshKey); // print the key to the serial window
@@ -134,7 +135,7 @@ if(Serial.available()) {
 
 
 // function retrieves a session key from pastebin API
-char keyReq(char *keyTemp){
+void keyReq(char *keyTemp){
   if (client.connect(server, 80)) {
 //    Serial.println("Connected to server. Retrieving session key..."); // uncomment if you're not sure you're connecting
     // Make a HTTP request:
@@ -152,6 +153,7 @@ char keyReq(char *keyTemp){
     client.print(api_user_name);
     client.print(req3); 
     client.print(api_user_password);
+    delay(3000);
 }
     while (client.available()) {
     if(client.find("EWR")){ // find distinctive text anchor
@@ -160,11 +162,6 @@ char keyReq(char *keyTemp){
     client.readBytesUntil('\r\n', keyTemp, buffer); // save text through next newline to keyTemp
     }}
     }
-  }
-  // if the server's disconnected, stop the client:
-  if (!client.connected()) {
-    Serial.println();
-    Serial.println("disconnecting from server.");
     client.stop();
   }
 }
@@ -174,10 +171,11 @@ char keyReq(char *keyTemp){
 
 
 // function writes a paste and returns a string with the paste ID
-char pasteIt(char *text){ 
+void pasteIt(char *text){ 
 Serial.println("Making a paste..."); // remove once function works
 
 char pasteIDtemp[idBuffer + 1];
+pasteIDtemp[0] = 0;
 char api_user_key_tag[] = "&api_user_key="; // points to session_key
 char api_option_tag[] = "&api_option=paste";
 char api_paste_code_tag[] = "&api_paste_code=";
@@ -216,20 +214,20 @@ if (client.connect(server, 80)) {
     client.print(api_paste_private);
     client.print(api_paste_name_tag);
     client.print(api_paste_name);
+    delay(3000);
 }
  while (client.available()) {
     if(client.find("http://pastebin.com/")){ // find distinctive text anchor
     client.readBytesUntil('\r\n', pasteIDtemp, idBuffer); // seek text until next newline, save to pasteID
     // still printing old pasteID, whether this object is "pasteID" or a variable defined in local scope
     }
+    if(strlen(pasteIDtemp) == 0){
+      Serial.println("Paste attempt failed. Check your daily quota or internet connection.");
+    }
+    if(strlen(pasteIDtemp) != 0){
     Serial.print("Paste ID: ");
     Serial.println(pasteIDtemp); // still printing old pasteID, whether this object is "pasteID" or a variable defined in local scope
-  
- }    
-  // if the server's disconnected, stop the client:
-  if (!client.connected()) {
-    Serial.println();
-    Serial.println("disconnecting from server.");
+    }
     client.stop();
-  }
+ }    
 }

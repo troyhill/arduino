@@ -3,18 +3,21 @@ posts temperature data recorded by probe
 */
 
 // seem to be some pointer issues with pasteID and also keyReq.
-// data posted to pastebin is limtied to ~90 characters, not sure why that is. 
+// data posted to pastebin is limited to 90 characters. 
 
 #include <SPI.h>
 #include <WiFi.h>
 
-char ssid[] = "";      // network SSID
-char pass[] = "";    // network password
 
-// variables for session key function
-char api_user_name[] = "";
-char api_user_password[] = "";
-char api_dev_key[] = "";
+// Modify these lines to match your setup:
+char ssid[] = "ye_ole_internetwork";      // network SSID
+char pass[] = "ye_ole_WPA_password";      // network password
+char api_user_name[] = "username";     // Pastebin username
+char api_user_password[] = "password"; // Pastebin password
+char api_dev_key[] = "your_dev_key";   // Pastebin dev key (http://pastebin.com/api/)
+
+
+// parameters for session key function
 char key_tag[] = "&api_dev_key=";
 char req1[] = "POST ";
 char req2[] = "&api_user_name=";
@@ -23,12 +26,12 @@ int b1 = strlen(api_dev_key) + strlen(api_user_name) + strlen(api_user_password)
 const int buffer = 32; // length of session key
 char seshKey[buffer + 1]; // allow for the terminating null [buffer + 1]
 
-// variables for paste function
+// parameters for paste function
 const int idBuffer = 20;
 char pasteID[idBuffer + 1];
 
 
-// variables for temperature readings
+// parameters for temperature readings
 // Board setup: 5V to resistor between thermister wire and line to A0; 2nd therm wire going to ground
 // which analog pin connects to thermister
 #define THERMISTORPIN A0
@@ -46,7 +49,7 @@ char pasteID[idBuffer + 1];
 // length of data file stored in RAM
 #define dataLength 90 // 90 works, 100 appears not to
 // sampling interval in milliseconds (very simplistic - Arduino doesn't go into a low-power mode)
-#define pauseInterval 30000 // 5 minutes = 5 * 60 * 1000 milliseconds
+#define pauseInterval 3000 // 5 minutes = 5 * 60 * 1000 = 30000 milliseconds
     
 int samples[NUMSAMPLES];
 char GlobTmp[12]; // temperature array in global scope
@@ -93,7 +96,6 @@ void setup() {
     delay(10000);
   }
   keyReq(seshKey); // try to get a key at the outset
-  delay(3000);
   if(strlen(seshKey) == 32) { 
   Serial.print("Session key (generated in setup loop): ");
   Serial.println(seshKey); // print the key to the serial window. this never prints - pointer issue?
@@ -108,9 +110,10 @@ void loop() {
 // if pastebin session key doesn't exist, get one. 
 // This could use a counter so it doesn't get stuck in an endless loop
 // if, e.g., website is unavailable
+static char pasteIDtemp[idBuffer + 1]; 
+ 
  if(strlen(seshKey) < 32) { 
   keyReq(seshKey);
-  delay(3000);
   if(strlen(seshKey) == 32) { 
   Serial.print("Session key: ");
   Serial.println(seshKey); // print the key to the serial window
@@ -132,17 +135,20 @@ void loop() {
   }
 
 if(strlen(data) >= (dataLength - 5)){ // if dataset ("data") has room, append a temperature reading
-   char a = pasteIt(data);
-   //strcpy(pasteID, a);
+   pasteIt();
    Serial.println();
    Serial.print("Paste ID: ");
-   Serial.println(a);
-   delay(3000); // wait 3 seconds, then do it again
- 
- if(pasteID != ""){ // if paste was successfull, delete data file and Paste ID and start over
+   //Serial.println(pasteIDtemp); 
+   //strcpy(pasteID, pasteIDtemp);
+   Serial.println(pasteID); 
+   
+ // if the connection to Pastebin is lost (or rejected, in the event you've
+ // exceeded your paste-quota, this will stick the logger in an endless loop (or at least,
+ // until it can paste again. Change this to suit your needs. 
+ if(strlen(pasteID) > 5){ // if paste was successful, delete data file and Paste ID and start over
    sprintf(pasteID, "");
    sprintf(data, "Deg_F:,");
-   delay(3000); // wait 3 seconds, then do it again
+   //delay(pauseInterval); // wait 3 seconds, then do it again
  }
 }
 }
@@ -153,7 +159,7 @@ if(strlen(data) >= (dataLength - 5)){ // if dataset ("data") has room, append a 
 
 
 // function retrieves a session key from pastebin API
-char keyReq(char *keyTemp){
+void keyReq(char *keyTemp){
   if (client.connect(server, 80)) {
 //    Serial.println("Connected to server. Retrieving session key..."); // uncomment if more serial printing is desired
     // Make a HTTP request:
@@ -171,6 +177,7 @@ char keyReq(char *keyTemp){
     client.print(api_user_name);
     client.print(req3); 
     client.print(api_user_password);
+    delay(3000);
 }
     while (client.available()) {
     if(client.find("EWR")){ // find distinctive text anchor
@@ -179,11 +186,6 @@ char keyReq(char *keyTemp){
     client.readBytesUntil('\r\n', keyTemp, buffer); // save text through next newline to keyTemp
     }}
     }
-  }
-  // if the server's disconnected, stop the client:
-  if (!client.connected()) {
-    Serial.println();
-    Serial.println("disconnecting from server.");
     client.stop();
   }
 }
@@ -195,8 +197,8 @@ char keyReq(char *keyTemp){
 
 
 // function writes a paste and returns a string with the paste ID
-char pasteIt(char *text){ 
- char pasteIDtemp[idBuffer + 1]; 
+void pasteIt(){ 
+ static char pasteIDtemp[idBuffer + 1]; 
   Serial.println("Making a paste..."); // remove once function works
 
 char api_user_key_tag[] = "&api_user_key="; // points to session_key
@@ -211,7 +213,7 @@ char api_paste_name[] = "Untitled";
 
 int contentLength = strlen(key_tag) + strlen(api_dev_key) + strlen(api_user_key_tag) + strlen(seshKey) +// seshKey is session key
   strlen(api_option_tag) + strlen(api_paste_code_tag) +
-  strlen(text) + strlen(api_paste_expire_date_tag) + strlen(api_paste_expire_date) + 
+  strlen(data) + strlen(api_paste_expire_date_tag) + strlen(api_paste_expire_date) + 
   strlen(api_paste_private_tag) + strlen(api_paste_private) + strlen(api_paste_name_tag) + 
   strlen(api_paste_name);
   
@@ -230,27 +232,24 @@ if (client.connect(server, 80)) {
     client.print(seshKey); // session_key
     client.print(api_option_tag);
     client.print(api_paste_code_tag);
-    client.print(text);
+    client.print(data);
     client.print(api_paste_expire_date_tag);
     client.print(api_paste_expire_date);
     client.print(api_paste_private_tag);
     client.print(api_paste_private);
     client.print(api_paste_name_tag);
     client.print(api_paste_name);
+    delay(3000);
 }
  while (client.available()) {
     if(client.find("http://pastebin.com/")){ // find distinctive text anchor
-    client.readBytesUntil('\r\n', pasteIDtemp, idBuffer); // seek text until next newline, save to pasteIDtemp
-    return *pasteIDtemp;
+    client.readBytesUntil('\r\n', pasteID, idBuffer); // seek text until next newline, save to pasteIDtemp
+    //return pasteIDtemp; // if a returned pasteID is desired
     //strcpy(pasteID, pasteIDtemp);
-    }}    
-  // if the server's disconnected, stop the client:
-  if (!client.connected()) {
-    Serial.println();
-    Serial.println("disconnecting from server.");
-    client.stop();
-  }
-}
+    }
+      client.stop();
+    }    
+ }
 
 
 
