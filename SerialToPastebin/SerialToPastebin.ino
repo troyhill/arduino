@@ -1,6 +1,6 @@
 /* This code does the following: 
 (1) retrieves a pastebin session key, and  
-(2) posts arbitrary text entered into the serial terminal (up to 90 bytes; ~63 characters).
+(2) posts arbitrary text entered into the serial terminal (up to Serial receive buffer: ~63 characters).
 
 This code requires the following conditions:
 - an Arduino wireless card
@@ -13,10 +13,6 @@ WiFi connection code is modified from Arduino example code "ConnectWithWPA." Cre
  modified 31 May 2012
  by Tom Igoe"
 */
-
-// issues: 
-// - printing pasteID from previous paste
-
 
 #include <SPI.h>
 #include <WiFi.h>
@@ -41,7 +37,7 @@ char seshKey[buffer + 1]; // allow for the terminating null [buffer + 1]
 
 
 // parameters for paste function
-const int idBuffer = 20;
+const int idBuffer = 20; // Paste IDs are 8 characters
 char pasteID[idBuffer + 1]; // holds paste ID before merging to pasteList (more than enough characters)
 #define INPUTLENGTH 64 // max length of input array
 static int pos = 0; // Index into array; where to store the character
@@ -75,12 +71,15 @@ void setup() {
  
   // attempt to connect to wifi network:
   while (status != WL_CONNECTED) {
-    Serial.print("Attempting to connect to SSID: ");
-    Serial.println(ssid);
     // Connect to WPA/WPA2 network   
     status = WiFi.begin(ssid, pass);
     // wait 10 seconds for connection:
     delay(10000);
+  }
+  
+  if (status == WL_CONNECTED){
+    Serial.print("Connected to SSID: ");
+    Serial.println(ssid);
   }
 }
 
@@ -93,8 +92,8 @@ void loop() {
  if(strlen(seshKey) < 32) { 
   keyReq(seshKey);
   if(strlen(seshKey) == 32) { 
-  Serial.print("Session key: ");
-  Serial.println(seshKey); // print the key to the serial window
+//  Serial.print("Session key: ");
+//  Serial.println(seshKey); // print the key to the serial window
   Serial.println("Session key successfully generated. Enter text to create a paste."); 
   }  
  }
@@ -126,7 +125,7 @@ if(Serial.available()) {
  if(strlen(seshKey) == 32) {
   //char pasteInput[] = "Hello, world."; // uncomment if you want to print a pre-defined message
   pasteIt(inData); // formerly pasteInput
-  Serial.print("input text: ");
+  Serial.print("Input text: ");
   Serial.println(inData);
   }
   }
@@ -172,8 +171,6 @@ void keyReq(char *keyTemp){
 
 // function writes a paste and returns a string with the paste ID
 void pasteIt(char *text){ 
-Serial.println("Making a paste..."); // remove once function works
-
 char pasteIDtemp[idBuffer + 1];
 pasteIDtemp[0] = 0;
 char api_user_key_tag[] = "&api_user_key="; // points to session_key

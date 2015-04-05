@@ -2,7 +2,6 @@
 posts temperature data recorded by probe
 */
 
-// seem to be some pointer issues with pasteID and also keyReq.
 // data posted to pastebin is limited to 90 characters. 
 
 #include <SPI.h>
@@ -88,17 +87,21 @@ void setup() {
  
   // attempt to connect to Wifi network:
   while (status != WL_CONNECTED) {
-    Serial.print("Attempting to connect to SSID: ");
-    Serial.println(ssid);
     // Connect to WPA/WPA2 network   
     status = WiFi.begin(ssid, pass);
     // wait 10 seconds for connection:
     delay(10000);
   }
+  
+  if (status == WL_CONNECTED){
+    Serial.print("Connected to SSID: ");
+    Serial.println(ssid);
+  }
+  
   keyReq(seshKey); // try to get a key at the outset
   if(strlen(seshKey) == 32) { 
-  Serial.print("Session key (generated in setup loop): ");
-  Serial.println(seshKey); // print the key to the serial window. this never prints - pointer issue?
+  Serial.println("Session key generated!");
+//  Serial.println(seshKey); // print the key to the serial window. this never prints - pointer issue?
   }
 }
 
